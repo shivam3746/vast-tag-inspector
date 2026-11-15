@@ -1,0 +1,32 @@
+{
+  "name": "vast-tag-inspector",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch apps/api/src/server.ts",
+    "build": "tsc -p apps/api/tsconfig.build.json",
+    "start": "node apps/api/dist/server.js",
+    "db:check": "node --env-file-if-exists=.env apps/api/src/db-check.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.18.0",
+    "eslint": "^10.15.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^4.0.0"
+  }
+}

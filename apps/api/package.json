@@ -1,0 +1,14 @@
+{
+  "name": "@vast-tag/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "drizzle-orm": "^0.45.0",
+    "express": "^5.1.0",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3"
+  }
+}
