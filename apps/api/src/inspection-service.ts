@@ -16,23 +16,25 @@ const fetchDocument: FetchDocument = async (url) => {
 interface Job {
   id: string;
   source: InspectionSource;
+  repository: InspectionRepository;
 }
 
-export function createInspectionService(
-  repository: InspectionRepository,
-  { concurrency = 2, capacity = 16, fetch = fetchDocument } = {},
-) {
+export function createInspectionService({
+  concurrency = 2,
+  capacity = 16,
+  fetch = fetchDocument,
+} = {}) {
   const queue: Job[] = [];
   let active = 0;
   let outstanding = 0;
 
-  async function run(job: Job) {
+  async function run({ id, source, repository }: Job) {
     try {
-      if (!(await repository.start(job.id))) return;
-      const chain = await resolveVast(job.source, { fetchDocument: fetch });
-      await repository.finish(job.id, chain, evaluateRules(chain));
+      if (!(await repository.start(id))) return;
+      const chain = await resolveVast(source, { fetchDocument: fetch });
+      await repository.finish(id, chain, evaluateRules(chain));
     } catch {
-      await repository.fail(job.id, 'INTERNAL_ERROR');
+      await repository.fail(id, 'INTERNAL_ERROR');
     }
   }
 
@@ -52,22 +54,24 @@ export function createInspectionService(
   }
 
   return {
-    async submit(source: InspectionSource) {
+    async submit(
+      repository: InspectionRepository,
+      source: InspectionSource,
+      createdBy: string,
+    ) {
       if (outstanding >= capacity) return null;
       outstanding++;
       let id: string;
       try {
-        id = await repository.create(source);
+        id = await repository.create(source, createdBy);
       } catch (error) {
         outstanding--;
         throw error;
       }
-      queue.push({ id, source });
+      queue.push({ id, source, repository });
       dispatch();
       return id;
     },
-    list: repository.list,
-    get: repository.get,
   };
 }
 

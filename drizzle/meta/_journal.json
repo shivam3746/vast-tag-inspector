@@ -22,6 +22,13 @@
       "when": 1794821975578,
       "tag": "0002_enforce_max_severity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794822633886,
+      "tag": "0003_team_profiles",
+      "breakpoints": true
     }
   ]
 }

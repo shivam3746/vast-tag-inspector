@@ -1,11 +1,10 @@
 import { createApp } from './app.ts';
+import { createSupabaseVerifier } from './auth.ts';
 import { connectDatabase } from './db.ts';
-import {
-  createInspectionRepository,
-  initializeLocalTeam,
-  LOCAL_TEAM_ID,
-} from './inspection-repository.ts';
+import { recoverExpiredInspections } from './inspection-repository.ts';
+import type { InspectionApi } from './inspection-routes.ts';
 import { createInspectionService } from './inspection-service.ts';
+import { profiles } from './schema.ts';
 
 const host = process.env.HOST ?? '127.0.0.1';
 const port = Number(process.env.PORT ?? '3000');
@@ -15,28 +14,41 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 }
 
 async function start() {
-  const connectionString = process.env.DATABASE_URL;
-  const local = host === '127.0.0.1' || host === '::1';
-  const connection =
-    connectionString && local ? connectDatabase(connectionString) : null;
+  const connectionString = process.env.DATABASE_URL?.trim();
+  const projectUrl = process.env.SUPABASE_URL?.trim();
+  let closeDatabase: (() => Promise<void>) | undefined;
   try {
-    const repository = connection
-      ? createInspectionRepository(connection.db, LOCAL_TEAM_ID)
-      : null;
-    if (connection && repository) {
-      await initializeLocalTeam(connection.db);
-      await repository.recoverInterrupted();
+    let inspectionApi: InspectionApi | undefined;
+    if (projectUrl) {
+      if (!connectionString)
+        throw new Error(
+          'DATABASE_URL is required when SUPABASE_URL is configured.',
+        );
+      const verifyAccessToken = createSupabaseVerifier(projectUrl);
+      const { db, close } = connectDatabase(connectionString);
+      closeDatabase = close;
+      await db.select({ userId: profiles.userId }).from(profiles).limit(1);
+      const recover = () =>
+        recoverExpiredInspections(db, new Date(Date.now() - 15 * 60_000));
+      await recover();
+      setInterval(() => {
+        void recover().catch(() =>
+          console.error('Could not recover expired inspections.'),
+        );
+      }, 60_000).unref();
+      inspectionApi = {
+        db,
+        verifyAccessToken,
+        service: createInspectionService(),
+      };
     }
-    const app = createApp(
-      repository ? createInspectionService(repository) : undefined,
-    );
-    app.listen(port, host, () => {
+    createApp(inspectionApi).listen(port, host, () => {
       console.log(`VAST Tag Inspector API listening on http://${host}:${port}`);
     });
   } catch {
-    if (connection) await connection.close();
+    if (closeDatabase) await closeDatabase();
     console.error(
-      'Could not initialize the inspection database. Check DATABASE_URL and run npm run db:migrate.',
+      'Could not initialize inspections. Check SUPABASE_URL and DATABASE_URL and run npm run db:migrate.',
     );
     process.exitCode = 1;
   }

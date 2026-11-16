@@ -2,9 +2,9 @@ import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
 import { inspectionRoutes } from './inspection-routes.ts';
-import type { InspectionService } from './inspection-service.ts';
+import type { InspectionApi } from './inspection-routes.ts';
 
-export function createApp(service?: InspectionService) {
+export function createApp(inspections?: InspectionApi) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
@@ -13,7 +13,7 @@ export function createApp(service?: InspectionService) {
     response.json({ status: 'ok' });
   });
 
-  if (service) app.use('/api/inspections', inspectionRoutes(service));
+  if (inspections) app.use('/api/inspections', inspectionRoutes(inspections));
   app.use((_request, response) => {
     response
       .status(404)

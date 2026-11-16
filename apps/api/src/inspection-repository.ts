@@ -1,15 +1,22 @@
 import type { Chain, Finding, InspectionSource } from '@vast-tag/vast-core';
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
 import type { Database } from './db.ts';
-import { findings, hops, inspections, teams } from './schema.ts';
+import { findings, hops, inspections } from './schema.ts';
 
-export const LOCAL_TEAM_ID = '00000000-0000-4000-8000-000000000001';
-
-export async function initializeLocalTeam(db: Database) {
+export async function recoverExpiredInspections(db: Database, cutoff: Date) {
   await db
-    .insert(teams)
-    .values({ id: LOCAL_TEAM_ID, name: 'Local development' })
-    .onConflictDoNothing();
+    .update(inspections)
+    .set({
+      status: 'failed',
+      errorCode: 'JOB_EXPIRED',
+      finishedAt: new Date(),
+    })
+    .where(
+      and(
+        lt(inspections.createdAt, cutoff),
+        inArray(inspections.status, ['queued', 'running']),
+      ),
+    );
 }
 
 export function createInspectionRepository(db: Database, teamId: string) {
@@ -17,12 +24,12 @@ export function createInspectionRepository(db: Database, teamId: string) {
   const byId = (id: string) => and(scope, eq(inspections.id, id));
 
   return {
-    async create(source: InspectionSource) {
+    async create(source: InspectionSource, createdBy: string) {
       const sourceRef =
         source.type === 'url' ? new URL(source.value).origin : 'Pasted XML';
       const [row] = await db
         .insert(inspections)
-        .values({ teamId, sourceType: source.type, sourceRef })
+        .values({ teamId, createdBy, sourceType: source.type, sourceRef })
         .returning({ id: inspections.id });
       if (!row) throw new Error('Inspection insert returned no ID.');
       return row.id;
@@ -106,15 +113,12 @@ export function createInspectionRepository(db: Database, teamId: string) {
           and(byId(id), inArray(inspections.status, ['queued', 'running'])),
         );
     },
-    async recoverInterrupted() {
-      await db
-        .update(inspections)
-        .set({
-          status: 'failed',
-          errorCode: 'PROCESS_RESTARTED',
-          finishedAt: new Date(),
-        })
-        .where(and(scope, inArray(inspections.status, ['queued', 'running'])));
+    async delete(id: string) {
+      const rows = await db
+        .delete(inspections)
+        .where(byId(id))
+        .returning({ id: inspections.id });
+      return rows.length === 1;
     },
     async list(limit: number, offset: number) {
       return db

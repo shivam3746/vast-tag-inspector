@@ -29,6 +29,7 @@ export const severity = schema.enum('finding_severity', [
   'warning',
   'error',
 ]);
+export const teamRole = schema.enum('team_role', ['admin', 'ad_ops', 'viewer']);
 
 export const teams = schema.table('teams', {
   id: uuid().defaultRandom().primaryKey(),
@@ -37,6 +38,18 @@ export const teams = schema.table('teams', {
     .defaultNow()
     .notNull(),
 });
+
+export const profiles = schema.table(
+  'profiles',
+  {
+    userId: uuid('user_id').primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id),
+    role: teamRole().notNull().default('viewer'),
+  },
+  (table) => [index('profiles_team').on(table.teamId)],
+);
 
 export const inspections = schema.table(
   'inspections',
@@ -68,6 +81,9 @@ export const inspections = schema.table(
       table.createdAt.desc(),
       table.id.desc(),
     ),
+    index('inspections_pending_age')
+      .on(table.createdAt)
+      .where(sql`${table.status} in ('queued', 'running')`),
     check(
       'inspections_max_severity_check',
       sql`${table.maxSeverity} in ('none', 'info', 'warning', 'error')`,
