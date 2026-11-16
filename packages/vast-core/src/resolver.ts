@@ -4,11 +4,13 @@ import type { ParsedVast, ParseErrorCode } from './parser.ts';
 export type InspectionSource = { type: 'xml' | 'url'; value: string };
 export type FetchDocument = (
   url: URL,
-) => Promise<{ status: number; body: string }>;
+) => Promise<
+  | { status: number; body: string; finalUrl?: string }
+  | { errorCode: `FETCH_${string}` }
+>;
 type ErrorCode =
   | ParseErrorCode
-  | 'FETCH_UNAVAILABLE'
-  | 'FETCH_FAILED'
+  | `FETCH_${string}`
   | 'HTTP_ERROR'
   | 'INVALID_URL'
   | 'WRAPPER_URI_MISSING'
@@ -77,8 +79,17 @@ export async function resolveVast(
       hops.push(hop);
       try {
         const result = await options.fetchDocument(new URL(url));
+        if ('errorCode' in result) return fail(result.errorCode);
         hop.status = result.status;
         xml = result.body;
+        if (result.finalUrl) {
+          const finalUrl = resolveUrl(result.finalUrl);
+          if (!finalUrl) return fail('INVALID_URL');
+          if (finalUrl.href !== url.href && visited.has(finalUrl.href))
+            return fail('WRAPPER_CYCLE');
+          visited.add(finalUrl.href);
+          url = finalUrl;
+        }
       } catch {
         return fail('FETCH_FAILED');
       } finally {

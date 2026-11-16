@@ -1,0 +1,10 @@
+{
+  "name": "@vast-tag/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vast-tag/safe-fetch": "0.0.0",
+    "@vast-tag/vast-core": "0.0.0"
+  }
+}

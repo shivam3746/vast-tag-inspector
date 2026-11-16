@@ -14,7 +14,7 @@
     "build": "tsc -p apps/api/tsconfig.build.json",
     "start": "node apps/api/dist/server.js",
     "db:check": "node --env-file-if-exists=.env apps/api/src/db-check.ts",
-    "inspect": "node packages/vast-core/src/cli.ts",
+    "inspect": "node apps/cli/src/inspect.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

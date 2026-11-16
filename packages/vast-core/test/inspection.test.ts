@@ -124,6 +124,38 @@ describe('evaluateRules', () => {
 });
 
 describe('resolveVast', () => {
+  it('uses the final HTTP response URL to resolve a relative wrapper URI', async () => {
+    const fetchDocument = vi
+      .fn<import('../src/index.ts').FetchDocument>()
+      .mockResolvedValueOnce({
+        status: 200,
+        body: wrapped('inline.xml'),
+        finalUrl: 'https://delivery.example/tags/wrapper.xml',
+      })
+      .mockResolvedValueOnce({ status: 200, body: fixture('inline-clean') });
+    const chain = await resolveVast(
+      { type: 'url', value: 'https://fixture.example/start' },
+      { fetchDocument },
+    );
+    expect(chain.outcome.kind).toBe('inline');
+    expect(fetchDocument).toHaveBeenLastCalledWith(
+      new URL('https://delivery.example/tags/inline.xml'),
+    );
+  });
+
+  it('reports typed fetch failures without a parsed hop', async () => {
+    const chain = await resolveVast(
+      { type: 'url', value: 'https://fixture.example/start' },
+      { fetchDocument: async () => ({ errorCode: 'FETCH_BLOCKED_IP' }) },
+    );
+    expect(chain.outcome).toEqual({
+      kind: 'error',
+      code: 'FETCH_BLOCKED_IP',
+      hopIndex: 0,
+    });
+    expect(chain.hops[0]?.document).toBeNull();
+  });
+
   it('follows a wrapper with an injected transport backed by a local fixture server', async () => {
     const server = createServer((_request, response) =>
       response.end(fixture('inline-clean')),

@@ -9,3 +9,4 @@ coverage/
 
 /README.md
 /CTV VAST Tag Inspector Research Rationale, System Design and Build Plan.md
+/docs/adr/001-ssrf-protections.md
