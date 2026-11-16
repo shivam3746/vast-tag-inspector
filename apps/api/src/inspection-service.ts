@@ -31,7 +31,10 @@ export function createInspectionService({
   async function run({ id, source, repository }: Job) {
     try {
       if (!(await repository.start(id))) return;
-      const chain = await resolveVast(source, { fetchDocument: fetch });
+      const chain = await resolveVast(source, {
+        fetchDocument: fetch,
+        captureXmlPreview: true,
+      });
       await repository.finish(id, chain, evaluateRules(chain));
     } catch {
       await repository.fail(id, 'INTERNAL_ERROR');

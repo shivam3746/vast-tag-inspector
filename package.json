@@ -12,7 +12,8 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch apps/api/src/server.ts",
-    "build": "tsc -p apps/api/tsconfig.build.json",
+    "dev:web": "npm run dev -w @vast-tag/web",
+    "build": "tsc -p apps/api/tsconfig.build.json && npm run build -w @vast-tag/web",
     "start": "node apps/api/dist/server.js",
     "db:check": "node --env-file-if-exists=.env apps/api/src/db-check.ts",
     "db:migrate": "node --env-file-if-exists=.env apps/api/src/db-migrate.ts",
@@ -20,11 +21,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit && npm run typecheck -w @vast-tag/web",
+    "test": "vitest run",
+    "test:e2e": "playwright test --config apps/web/playwright.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.0",
     "@types/node": "^22.18.0",
     "drizzle-kit": "^0.31.0",
     "eslint": "^10.15.0",

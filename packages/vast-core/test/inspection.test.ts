@@ -21,6 +21,23 @@ function wrapped(target: string) {
 }
 
 describe('parseVast', () => {
+  it('caps saved XML previews and keeps input values out of them', () => {
+    const xml =
+      '<VAST version="4.3" account="private-account"><Ad><InLine>' +
+      '<Impression>https://metrics.example/?token=private-token</Impression>'.repeat(
+        600,
+      ) +
+      '</InLine></Ad></VAST>';
+    const parsed = parseVast(xml, true);
+    expect(parsed.ok).toBe(true);
+    const preview = parsed.ok ? (parsed.xmlPreview ?? '') : '';
+    expect(preview).toContain('<Impression>');
+    expect(preview).toContain('Preview truncated');
+    expect(Buffer.byteLength(preview)).toBeLessThanOrEqual(16 * 1024);
+    expect(preview).not.toContain('private-token');
+    expect(preview).not.toContain('private-account');
+  });
+
   it('normalizes impression entities, media CDATA, duration, and skippability', () => {
     const parsed = parseVast(fixture('inline-clean'));
     expect(parsed).toMatchObject({

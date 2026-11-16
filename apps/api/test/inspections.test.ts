@@ -148,7 +148,9 @@ describe.skipIf(!testDatabaseUrl)('inspection API with Postgres', () => {
         hopId: inspection.hops[0].id,
       },
     ]);
-    expect(JSON.stringify(inspection)).not.toContain('<VAST');
+    expect(inspection.hops[0].xmlPreview).toContain('<VAST>');
+    expect(inspection.hops[0].xmlPreview).not.toContain('https://');
+    expect(inspection.hops[0]).not.toHaveProperty('rawXml');
 
     const { body: history } = await client
       .get('/api/inspections?limit=1&offset=0')

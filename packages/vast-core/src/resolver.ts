@@ -22,6 +22,8 @@ export interface Hop {
   status: number | null;
   latencyMs: number;
   document: ParsedVast | null;
+  xmlPreview?: string;
+  urlOrigin?: string;
 }
 
 export interface Chain {
@@ -34,6 +36,7 @@ export interface Chain {
 interface ResolverOptions {
   fetchDocument?: FetchDocument;
   maxWrapperDepth?: number;
+  captureXmlPreview?: boolean;
 }
 
 function resolveUrl(value: string, base?: URL): URL | undefined {
@@ -75,6 +78,7 @@ export async function resolveVast(
       if (visited.has(url.href)) return fail('WRAPPER_CYCLE');
       if (!options.fetchDocument) return fail('FETCH_UNAVAILABLE');
       visited.add(url.href);
+      hop.urlOrigin = url.origin;
       const start = performance.now();
       hops.push(hop);
       try {
@@ -89,6 +93,7 @@ export async function resolveVast(
             return fail('WRAPPER_CYCLE');
           visited.add(finalUrl.href);
           url = finalUrl;
+          hop.urlOrigin = finalUrl.origin;
         }
       } catch {
         return fail('FETCH_FAILED');
@@ -103,9 +108,10 @@ export async function resolveVast(
     if (!xml.trim() && Buffer.byteLength(xml, 'utf8') <= MAX_XML_BYTES) {
       return { hops, outcome: { kind: 'empty' } };
     }
-    const parsed = parseVast(xml);
+    const parsed = parseVast(xml, options.captureXmlPreview);
     if (!parsed.ok) return fail(parsed.code);
     hop.document = parsed.value;
+    if (parsed.xmlPreview) hop.xmlPreview = parsed.xmlPreview;
     const firstAd = parsed.value.ads[0];
     if (!firstAd) return { hops, outcome: { kind: 'empty' } };
     if (firstAd.kind === 'inline') return { hops, outcome: { kind: 'inline' } };

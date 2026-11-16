@@ -133,6 +133,9 @@ export function inspectionRoutes({
     const repository = createInspectionRepository(db, res.locals.user.teamId);
     res.json({ items: await repository.list(limit, offset), limit, offset });
   });
+  router.get('/access', (_req, res) => {
+    res.json({ role: res.locals.user.role });
+  });
   router.get('/:id', async (req, res) => {
     const id = idSchema.safeParse(req.params.id);
     const repository = createInspectionRepository(db, res.locals.user.teamId);

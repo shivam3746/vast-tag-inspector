@@ -1,19 +1,67 @@
+import { join } from 'node:path';
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
 import { inspectionRoutes } from './inspection-routes.ts';
 import type { InspectionApi } from './inspection-routes.ts';
 
-export function createApp(inspections?: InspectionApi) {
+interface BrowserConfig {
+  supabaseUrl: string;
+  supabasePublishableKey: string;
+}
+
+export function createApp(
+  inspections?: InspectionApi,
+  { directory, config }: { directory?: string; config?: BrowserConfig } = {},
+) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(helmet());
+  app.use(
+    helmet(
+      config
+        ? {
+            contentSecurityPolicy: {
+              directives: {
+                connectSrc: ["'self'", new URL(config.supabaseUrl).origin],
+              },
+            },
+          }
+        : {},
+    ),
+  );
 
-  app.get(['/', '/api/health'], (_request, response) => {
+  app.get('/api/health', (_request, response) => {
     response.json({ status: 'ok' });
+  });
+  app.get('/api/config', (_request, response) => {
+    response.set('Cache-Control', 'no-store');
+    if (config) {
+      response.json(config);
+    } else {
+      response.status(503).json({
+        error: {
+          code: 'APP_NOT_CONFIGURED',
+          message: 'Set up Supabase Auth and its publishable key to sign in.',
+        },
+      });
+    }
   });
 
   if (inspections) app.use('/api/inspections', inspectionRoutes(inspections));
+  if (directory) {
+    app.get('/', (_request, response) =>
+      response.sendFile(join(directory, 'index.html')),
+    );
+    app.use(
+      '/assets',
+      express.static(join(directory, 'assets'), {
+        maxAge: '1y',
+        immutable: true,
+      }),
+    );
+  } else {
+    app.get('/', (_request, response) => response.json({ status: 'ok' }));
+  }
   app.use((_request, response) => {
     response
       .status(404)

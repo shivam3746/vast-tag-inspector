@@ -103,9 +103,17 @@ export const hops = schema.table(
     latencyMs: integer('latency_ms').notNull(),
     kind: hopKind().notNull(),
     vastVersion: text('vast_version'),
+    urlOrigin: text('url_origin'),
+    xmlPreview: text('xml_preview'),
     errorCode: text('error_code'),
   },
-  (table) => [unique().on(table.inspectionId, table.index)],
+  (table) => [
+    unique().on(table.inspectionId, table.index),
+    check(
+      'hops_xml_preview_size',
+      sql`octet_length(${table.xmlPreview}) <= 16384`,
+    ),
+  ],
 );
 
 export const findings = schema.table(

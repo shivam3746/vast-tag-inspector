@@ -48,7 +48,8 @@ export interface ParsedVast {
 export type ParseErrorCode =
   'XML_TOO_LARGE' | 'XML_DECLARATION_BLOCKED' | 'INVALID_XML' | 'NOT_VAST';
 export type ParseResult =
-  { ok: true; value: ParsedVast } | { ok: false; code: ParseErrorCode };
+  | { ok: true; value: ParsedVast; xmlPreview?: string }
+  | { ok: false; code: ParseErrorCode };
 
 type XmlNode = Record<string, unknown>;
 
@@ -186,7 +187,49 @@ function readAd(node: XmlNode): VastAd | null {
   };
 }
 
-export function parseVast(xml: string): ParseResult {
+const previewElements = new Set(
+  'VAST Ad InLine Wrapper AdSystem AdTitle AdServingId Description Impression Error VASTAdTagURI Category Creatives Creative UniversalAdId Linear NonLinearAds CompanionAds Duration TrackingEvents Tracking MediaFiles MediaFile Mezzanine InteractiveCreativeFile ClosedCaptionFiles ClosedCaptionFile VideoClicks ClickThrough ClickTracking CustomClick Icons Icon AdParameters AdVerifications Verification JavaScriptResource ExecutableResource VerificationParameters Extensions Extension'.split(
+    ' ',
+  ),
+);
+const MAX_PREVIEW_LENGTH = 16 * 1024;
+const PREVIEW_FOOTER = '<!-- Preview truncated -->';
+
+function renderXmlPreview(root: XmlNode): string {
+  let output = '';
+  function write(node: XmlNode, name: string, indent: string) {
+    const entries = children(node, name);
+    const open = `${indent}<${name}>`;
+    const close = `${indent}</${name}>\n`;
+    const required = open.length + close.length + 1;
+    if (output.length + required > MAX_PREVIEW_LENGTH - PREVIEW_FOOTER.length)
+      return false;
+    output += `${open}\n`;
+    for (const entry of entries) {
+      if (typeof entry['#text'] === 'string') {
+        if (
+          output.length + indent.length + 13 >
+          MAX_PREVIEW_LENGTH - PREVIEW_FOOTER.length
+        )
+          return false;
+        output += `${indent}  [redacted]\n`;
+        continue;
+      }
+      const tag = Object.keys(entry).find((key) => previewElements.has(key));
+      if (tag && !write(entry, tag, `${indent}  `)) return false;
+    }
+    if (
+      output.length + close.length >
+      MAX_PREVIEW_LENGTH - PREVIEW_FOOTER.length
+    )
+      return false;
+    output += close;
+    return true;
+  }
+  return write(root, 'VAST', '') ? output.trimEnd() : output + PREVIEW_FOOTER;
+}
+
+export function parseVast(xml: string, captureXmlPreview = false): ParseResult {
   if (Buffer.byteLength(xml, 'utf8') > MAX_XML_BYTES)
     return { ok: false, code: 'XML_TOO_LARGE' };
   // Only predefined XML entities and numeric references are allowed.
@@ -211,5 +254,10 @@ export function parseVast(xml: string): ParseResult {
     if (!ad) return { ok: false, code: 'INVALID_XML' };
     ads.push(ad);
   }
-  return { ok: true, value: { version: attr(root, 'version'), ads } };
+  const result: ParseResult = {
+    ok: true,
+    value: { version: attr(root, 'version'), ads },
+  };
+  if (captureXmlPreview) result.xmlPreview = renderXmlPreview(root);
+  return result;
 }

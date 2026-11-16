@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createApp } from './app.ts';
 import { createSupabaseVerifier } from './auth.ts';
 import { connectDatabase } from './db.ts';
@@ -16,6 +18,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 async function start() {
   const connectionString = process.env.DATABASE_URL?.trim();
   const projectUrl = process.env.SUPABASE_URL?.trim();
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
   let closeDatabase: (() => Promise<void>) | undefined;
   try {
     let inspectionApi: InspectionApi | undefined;
@@ -42,13 +45,32 @@ async function start() {
         service: createInspectionService(),
       };
     }
-    createApp(inspectionApi).listen(port, host, () => {
+    const index = new URL('../../web/dist/index.html', import.meta.url);
+    if (publishableKey && !publishableKey.startsWith('sb_publishable_')) {
+      throw new Error(
+        'SUPABASE_PUBLISHABLE_KEY must be a Supabase publishable key.',
+      );
+    }
+    const web = {
+      ...(existsSync(index)
+        ? { directory: fileURLToPath(new URL('./', index)) }
+        : {}),
+      ...(projectUrl && publishableKey
+        ? {
+            config: {
+              supabaseUrl: projectUrl,
+              supabasePublishableKey: publishableKey,
+            },
+          }
+        : {}),
+    };
+    createApp(inspectionApi, web).listen(port, host, () => {
       console.log(`VAST Tag Inspector API listening on http://${host}:${port}`);
     });
   } catch {
     if (closeDatabase) await closeDatabase();
     console.error(
-      'Could not initialize inspections. Check SUPABASE_URL and DATABASE_URL and run npm run db:migrate.',
+      'Could not initialize the app. Check the Supabase configuration and run npm run db:migrate.',
     );
     process.exitCode = 1;
   }

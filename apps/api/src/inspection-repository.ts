@@ -72,7 +72,11 @@ export function createInspectionRepository(db: Database, teamId: string) {
             index,
             latencyMs: Math.round(hop.latencyMs),
             httpStatus: hop.status,
-            vastVersion: hop.document?.version ?? null,
+            vastVersion: /^\d{1,2}\.\d{1,2}$/.test(hop.document?.version ?? '')
+              ? hop.document?.version
+              : null,
+            urlOrigin: hop.urlOrigin ?? null,
+            xmlPreview: hop.xmlPreview ?? null,
             kind: hop.document
               ? (hop.document.ads[0]?.kind ?? 'empty')
               : chain.outcome.kind === 'empty'
