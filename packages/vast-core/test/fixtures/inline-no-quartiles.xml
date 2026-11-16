@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.3">
+  <Ad id="inline-1"><InLine>
+    <AdSystem>Fixture</AdSystem>
+    <AdTitle>CTV video</AdTitle>
+    <Impression>https://metrics.example/impression?a=1&amp;b=2</Impression>
+    <Creatives><Creative id="linear-1"><Linear skipoffset="25%">
+      <Duration>00:00:30.250</Duration>
+      <TrackingEvents>
+        <Tracking event="start">https://metrics.example/start</Tracking>
+        <Tracking event="complete">https://metrics.example/complete</Tracking>
+      </TrackingEvents>
+      <MediaFiles><MediaFile type="video/mp4" codec="avc1.640028" bitrate="2400"><![CDATA[https://media.example/creative?x=1&y=2]]></MediaFile></MediaFiles>
+    </Linear></Creative></Creatives>
+  </InLine></Ad>
+</VAST>

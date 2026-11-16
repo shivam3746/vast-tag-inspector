@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.3">
+  <Ad id="wrapper-1"><Wrapper>
+    <AdSystem>Fixture</AdSystem>
+    <VASTAdTagURI><![CDATA[https://fixture.example/inline]]></VASTAdTagURI>
+    <Impression>https://metrics.example/wrapper</Impression>
+  </Wrapper></Ad>
+</VAST>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.3">
+  <Ad id="wrapper-1"><Wrapper>
+    <AdSystem>Fixture</AdSystem>
+    <Impression>https://metrics.example/wrapper</Impression>
+  </Wrapper></Ad>
+</VAST>
