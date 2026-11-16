@@ -4,11 +4,18 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@vast-tag/safe-fetch": "0.0.0",
+    "@vast-tag/vast-core": "0.0.0",
     "drizzle-orm": "^0.45.0",
     "express": "^5.1.0",
-    "postgres": "^3.4.7"
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.0.0",
+    "postgres": "^3.4.7",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3"
+    "@types/express": "^5.0.3",
+    "@types/supertest": "^6.0.0",
+    "supertest": "^7.0.0"
   }
 }

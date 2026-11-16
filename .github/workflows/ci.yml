@@ -8,6 +8,20 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vast_test
+          POSTGRES_PASSWORD: vast_test
+          POSTGRES_DB: vast_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vast_test -d vast_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v6
         with:
@@ -21,6 +35,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://vast_test:vast_test@127.0.0.1:5432/vast_test
       - run: npm run build
 
   secrets:

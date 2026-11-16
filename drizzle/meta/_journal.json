@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794821974692,
+      "tag": "0000_inspection_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794821975105,
+      "tag": "0001_backfill_max_severity",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794821975578,
+      "tag": "0002_enforce_max_severity",
+      "breakpoints": true
+    }
+  ]
+}

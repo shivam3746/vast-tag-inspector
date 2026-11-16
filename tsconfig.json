@@ -12,6 +12,11 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["apps/**/*.ts", "packages/**/*.ts", "eval/**/*.ts"],
+  "include": [
+    "drizzle.config.ts",
+    "apps/**/*.ts",
+    "packages/**/*.ts",
+    "eval/**/*.ts"
+  ],
   "exclude": ["**/node_modules", "**/dist"]
 }

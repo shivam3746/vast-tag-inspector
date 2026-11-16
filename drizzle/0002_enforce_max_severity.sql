@@ -1,0 +1,2 @@
+ALTER TABLE "vast_inspector"."inspections" ALTER COLUMN "max_severity" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "vast_inspector"."inspections" ADD CONSTRAINT "inspections_max_severity_check" CHECK ("vast_inspector"."inspections"."max_severity" in ('none', 'info', 'warning', 'error'));

@@ -1,0 +1,410 @@
+{
+  "id": "ab9d1c50-1eff-400b-a4cf-f942a6e06851",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "vast_inspector.findings": {
+      "name": "findings",
+      "schema": "vast_inspector",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inspection_id": {
+          "name": "inspection_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hop_id": {
+          "name": "hop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idx": {
+          "name": "idx",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "finding_severity",
+          "typeSchema": "vast_inspector",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "findings_inspection_id_inspections_id_fk": {
+          "name": "findings_inspection_id_inspections_id_fk",
+          "tableFrom": "findings",
+          "tableTo": "inspections",
+          "schemaTo": "vast_inspector",
+          "columnsFrom": [
+            "inspection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "findings_hop_id_hops_id_fk": {
+          "name": "findings_hop_id_hops_id_fk",
+          "tableFrom": "findings",
+          "tableTo": "hops",
+          "schemaTo": "vast_inspector",
+          "columnsFrom": [
+            "hop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "findings_inspection_id_idx_unique": {
+          "name": "findings_inspection_id_idx_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "inspection_id",
+            "idx"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "vast_inspector.hops": {
+      "name": "hops",
+      "schema": "vast_inspector",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inspection_id": {
+          "name": "inspection_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idx": {
+          "name": "idx",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "http_status": {
+          "name": "http_status",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latency_ms": {
+          "name": "latency_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "hop_kind",
+          "typeSchema": "vast_inspector",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vast_version": {
+          "name": "vast_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "hops_inspection_id_inspections_id_fk": {
+          "name": "hops_inspection_id_inspections_id_fk",
+          "tableFrom": "hops",
+          "tableTo": "inspections",
+          "schemaTo": "vast_inspector",
+          "columnsFrom": [
+            "inspection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "hops_inspection_id_idx_unique": {
+          "name": "hops_inspection_id_idx_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "inspection_id",
+            "idx"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "vast_inspector.inspections": {
+      "name": "inspections",
+      "schema": "vast_inspector",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "source_type",
+          "typeSchema": "vast_inspector",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_ref": {
+          "name": "source_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "inspection_status",
+          "typeSchema": "vast_inspector",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hop_count": {
+          "name": "hop_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total_latency_ms": {
+          "name": "total_latency_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "max_severity": {
+          "name": "max_severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'none'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "inspections_team_history": {
+          "name": "inspections_team_history",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inspections_team_id_teams_id_fk": {
+          "name": "inspections_team_id_teams_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "teams",
+          "schemaTo": "vast_inspector",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "vast_inspector.teams": {
+      "name": "teams",
+      "schema": "vast_inspector",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "vast_inspector.hop_kind": {
+      "name": "hop_kind",
+      "schema": "vast_inspector",
+      "values": [
+        "wrapper",
+        "inline",
+        "empty",
+        "error"
+      ]
+    },
+    "vast_inspector.finding_severity": {
+      "name": "finding_severity",
+      "schema": "vast_inspector",
+      "values": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "vast_inspector.source_type": {
+      "name": "source_type",
+      "schema": "vast_inspector",
+      "values": [
+        "url",
+        "xml"
+      ]
+    },
+    "vast_inspector.inspection_status": {
+      "name": "inspection_status",
+      "schema": "vast_inspector",
+      "values": [
+        "queued",
+        "running",
+        "done",
+        "failed"
+      ]
+    }
+  },
+  "schemas": {
+    "vast_inspector": "vast_inspector"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

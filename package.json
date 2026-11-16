@@ -2,6 +2,7 @@
   "name": "vast-tag-inspector",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -14,6 +15,7 @@
     "build": "tsc -p apps/api/tsconfig.build.json",
     "start": "node apps/api/dist/server.js",
     "db:check": "node --env-file-if-exists=.env apps/api/src/db-check.ts",
+    "db:migrate": "node --env-file-if-exists=.env apps/api/src/db-migrate.ts",
     "inspect": "node apps/cli/src/inspect.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.18.0",
+    "drizzle-kit": "^0.31.0",
     "eslint": "^10.15.0",
     "prettier": "^3.6.2",
     "typescript": "~5.9.3",
