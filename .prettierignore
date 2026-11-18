@@ -1,5 +1,6 @@
 dist/
 coverage/
 package-lock.json
+eval/report.md
 drizzle/meta/
 CTV VAST Tag Inspector Research Rationale, System Design and Build Plan.md

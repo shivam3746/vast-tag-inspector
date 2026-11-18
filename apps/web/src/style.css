@@ -455,6 +455,14 @@ textarea {
 .history-card {
   padding: 19px;
 }
+#run-history,
+#waterfall {
+  scroll-margin-top: 16px;
+}
+#run-history:focus,
+#waterfall:focus {
+  outline: 2px solid #7b72ef;
+}
 .history-items {
   list-style: none;
   margin: 0;
@@ -479,6 +487,10 @@ textarea {
 }
 .history-row:hover {
   background: #f0f1fb;
+}
+.history-row > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
 }
 .history-type {
   width: 33px;
@@ -740,6 +752,53 @@ textarea {
   font-size: 12px;
   background: #edf3ff;
   color: #2d5191;
+}
+
+.explanation-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #dedaff;
+  border-radius: 9px;
+  background: #f7f6ff;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.explanation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.explanation-heading h3 {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #39319a;
+  font-weight: 720;
+}
+.explanation-confidence {
+  color: #4f4586;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+.explanation-panel .primary-button {
+  justify-self: start;
+}
+.explanation-panel ul {
+  display: grid;
+  gap: 6px;
+}
+.explanation-panel li {
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: white;
+}
+.explanation-panel li span {
+  font-size: 11px;
+  font-weight: 620;
+  color: #524a79;
 }
 .finding svg,
 .no-findings svg {

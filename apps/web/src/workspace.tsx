@@ -20,6 +20,7 @@ import type { FormEvent } from 'react';
 import { inspectionApi, pageSize, pending, readError } from './api.ts';
 import type { Role, Run, RunDetails, RunStatus, Source } from './api.ts';
 import { Brand } from './login.tsx';
+import { ExplanationPanel } from './explanation-panel.tsx';
 
 const sampleUrl =
   'https://raw.githubusercontent.com/InteractiveAdvertisingBureau/VAST_Samples/master/VAST%204.2%20Samples/Inline_Linear_Tag-test.xml';
@@ -192,7 +193,7 @@ function RunHistory({
       <div className="card-heading">
         <div>
           <h2 id="history-heading">Run history</h2>
-          <p>Recent inspections for your team.</p>
+          <p>Select a saved inspection to open its request waterfall.</p>
         </div>
         <span className="card-icon">
           <History size={19} aria-hidden="true" />
@@ -213,6 +214,7 @@ function RunHistory({
                 type="button"
                 className="history-row"
                 aria-pressed={selected === run.id}
+                aria-controls="waterfall"
                 onClick={() => select(run.id)}
               >
                 <span className="history-type">
@@ -229,6 +231,7 @@ function RunHistory({
                   </time>
                 </span>
                 <Status status={run.status} />
+                <ChevronRight size={15} aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -271,12 +274,18 @@ function Waterfall({
   error,
   retry,
   rawXml,
+  explain,
+  explanationModel,
+  explanationPromptVersion,
 }: {
   run: RunDetails | undefined;
   selected: string | undefined;
   error: string;
   retry: () => void;
   rawXml: string | undefined;
+  explain: ReturnType<typeof inspectionApi>['explain'] | undefined;
+  explanationModel: string | null;
+  explanationPromptVersion: string | null;
 }) {
   const total = run?.hops.reduce((sum, hop) => sum + hop.latencyMs, 0) || 1;
   let elapsed = 0;
@@ -301,11 +310,16 @@ function Waterfall({
       <div className="card-heading">
         <div>
           <h2 id="waterfall-heading">Request waterfall</h2>
-          <p>
-            {run
-              ? run.sourceRef
-              : 'See the order and latency of each response.'}
-          </p>
+          {run ? (
+            <p>
+              {run.sourceRef} ·{' '}
+              <time dateTime={run.createdAt}>
+                {dateFormat.format(new Date(run.createdAt))}
+              </time>
+            </p>
+          ) : (
+            <p>See the order and latency of each response.</p>
+          )}
         </div>
         {run ? (
           <Status status={run.status} />
@@ -445,6 +459,17 @@ function Waterfall({
               </p>
             )}
           </div>
+          <ExplanationPanel
+            key={run.id}
+            stored={run.explanation}
+            preferredModel={explanationModel}
+            promptVersion={explanationPromptVersion}
+            generate={
+              explain && run.findings.length
+                ? (signal) => explain(run.id, signal)
+                : undefined
+            }
+          />
         </>
       )}
     </section>
@@ -462,6 +487,11 @@ export function Workspace({
 }) {
   const api = useMemo(() => inspectionApi(token), [token]);
   const [role, setRole] = useState<Role>();
+  const [explanationsAvailable, setExplanationsAvailable] = useState(false);
+  const [explanationModel, setExplanationModel] = useState<string | null>(null);
+  const [explanationPromptVersion, setExplanationPromptVersion] = useState<
+    string | null
+  >(null);
   const [accessError, setAccessError] = useState('');
   const [accessAttempt, retryAccess] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -485,12 +515,22 @@ export function Workspace({
     const controller = new AbortController();
     void api
       .access(controller.signal)
-      .then(({ role }) => {
-        if (!controller.signal.aborted) {
-          setRole(role);
-          setAccessError('');
-        }
-      })
+      .then(
+        ({
+          role,
+          explanationsAvailable,
+          explanationModel,
+          explanationPromptVersion,
+        }) => {
+          if (!controller.signal.aborted) {
+            setRole(role);
+            setExplanationsAvailable(explanationsAvailable);
+            setExplanationModel(explanationModel);
+            setExplanationPromptVersion(explanationPromptVersion);
+            setAccessError('');
+          }
+        },
+      )
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           setRole(undefined);
@@ -546,6 +586,18 @@ export function Workspace({
       clearTimeout(next);
     };
   }, [api, selected, role, runVersion]);
+
+  function openHistoryRun(id: string) {
+    if (id !== selected) {
+      setRunError('');
+      select(id);
+    } else if (runError) {
+      refreshRun((count) => count + 1);
+    }
+    const waterfall = document.getElementById('waterfall');
+    waterfall?.focus({ preventScroll: true });
+    waterfall?.scrollIntoView({ block: 'start' });
+  }
 
   async function submit(source: Source) {
     if (submission.current) return;
@@ -641,12 +693,20 @@ export function Workspace({
                   submit={submit}
                 />
                 <Waterfall
+                  explanationModel={explanationModel}
+                  explanationPromptVersion={explanationPromptVersion}
                   run={run?.id === selected ? run : undefined}
                   selected={selected}
                   error={runError}
                   retry={() => refreshRun((count) => count + 1)}
                   rawXml={
                     localXml?.id === selected ? localXml?.value : undefined
+                  }
+                  explain={
+                    explanationsAvailable &&
+                    (role === 'admin' || role === 'ad_ops')
+                      ? api.explain
+                      : undefined
                   }
                 />
               </div>
@@ -655,10 +715,7 @@ export function Workspace({
                 loading={historyLoading}
                 error={historyError}
                 selected={selected}
-                select={(id) => {
-                  setRunError('');
-                  select(id);
-                }}
+                select={openHistoryRun}
                 offset={offset}
                 hasNext={history.length > pageSize}
                 changePage={setOffset}

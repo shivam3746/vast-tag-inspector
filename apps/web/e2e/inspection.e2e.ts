@@ -25,6 +25,14 @@ test('signs in, traces a fixture wrapper and opens the saved waterfall', async (
   await expect(waterfall.getByText('1. wrapper')).toBeVisible();
   await expect(waterfall.getByText('2. inline')).toBeVisible();
   await expect(waterfall.getByText('IMP-MISSING')).toBeVisible();
+  await waterfall.getByRole('button', { name: 'Explain findings' }).click();
+  await expect(waterfall.getByText('Rule guidance')).toBeVisible();
+  await expect(
+    waterfall.getByRole('list', { name: 'Suggested fixes' }),
+  ).toContainText('Add an Impression element');
+  await expect(
+    waterfall.getByRole('button', { name: 'Regenerate explanation' }),
+  ).toBeEnabled();
   await waterfall.getByText('View redacted XML').first().click();
   const preview = waterfall.locator('pre').first();
   await expect(preview).toBeVisible();
@@ -37,7 +45,9 @@ test('signs in, traces a fixture wrapper and opens the saved waterfall', async (
 
   await page.reload();
   await history.getByRole('button', { name: /ads.fixture.example/ }).click();
-  await expect(waterfall.getByText('IMP-MISSING')).toBeVisible();
+  await expect(
+    waterfall.getByText('Add an Impression element', { exact: false }),
+  ).toBeVisible();
 
   const xml =
     '<VAST version="4.3"><Ad><InLine><AdTitle>Local draft</AdTitle></InLine></Ad></VAST>';
@@ -54,6 +64,19 @@ test('signs in, traces a fixture wrapper and opens the saved waterfall', async (
   await expect(waterfall.locator('pre')).not.toContainText('Local draft');
 
   await page.setViewportSize({ width: 375, height: 800 });
+  await page.getByRole('link', { name: 'History' }).click();
+  await expect(history).toBeFocused();
+  const olderRun = history.getByRole('button', { name: /ads.fixture.example/ });
+  await olderRun.click();
+  await expect(waterfall).toBeFocused();
+  await expect(
+    waterfall.getByRole('heading', { name: 'Request waterfall' }),
+  ).toBeInViewport();
+  await expect(olderRun).toHaveAttribute('aria-pressed', 'true');
+  await expect(waterfall.getByText('2. inline')).toBeVisible();
+  await expect(
+    waterfall.getByRole('list', { name: 'Suggested fixes' }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   expect(
     await page.locator('body').evaluate((body) => body.scrollWidth),

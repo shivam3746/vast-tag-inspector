@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.3">
+<Ad>
+  <InLine>
+    <AdSystem>Fixture</AdSystem>
+    <AdTitle>Fixture ad</AdTitle>
+    <Creatives><Creative><Linear skipoffset="25%">
+      <TrackingEvents>
+        <Tracking event="start">https://metrics.example/start</Tracking>
+      </TrackingEvents>
+      <MediaFiles><MediaFile type="video/mp4" codec="vp9">https://media.example/video</MediaFile></MediaFiles>
+    </Linear></Creative></Creatives>
+  </InLine>
+</Ad>
+</VAST>

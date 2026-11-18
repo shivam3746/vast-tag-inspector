@@ -11,10 +11,15 @@ import { createTokenVerifier } from '../src/auth.ts';
 import type { VerifyAccessToken } from '../src/auth.ts';
 import { connectDatabase } from '../src/db.ts';
 import {
+  createExplanationService,
+  withExplanationFallback,
+} from '../src/explanation-service.ts';
+import {
   createInspectionRepository,
   recoverExpiredInspections,
 } from '../src/inspection-repository.ts';
 import { createInspectionService } from '../src/inspection-service.ts';
+import { rulesExplanationClient } from '../src/rules-explainer.ts';
 import { inspections, profiles, teams } from '../src/schema.ts';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -324,5 +329,128 @@ describe.skipIf(!testDatabaseUrl)('inspection API with Postgres', () => {
     expect(malformed.body.error.code).toBe('INVALID_JSON');
     const badPage = await client.get('/api/inspections?limit=500').expect(400);
     expect(badPage.body.error.code).toBe('INVALID_PAGINATION');
+  });
+
+  it('persists team explanations, reuses matching evidence and enforces roles and scope', async () => {
+    const complete = vi.fn(async () => ({
+      text: JSON.stringify({
+        summary: 'The impression is missing.',
+        probable_root_cause: 'The ad response omits the impression URL.',
+        confidence: 'high',
+        fixes: [
+          {
+            finding_rule_id: 'IMP-MISSING',
+            action: 'Add the impression URL.',
+            owner: 'publisher',
+          },
+        ],
+      }),
+      inputTokens: 40,
+      outputTokens: 18,
+      costUsd: 0.0001,
+    }));
+    const apiWithExplanation = request(
+      createApp({
+        db: connection.db,
+        verifyAccessToken,
+        service: createInspectionService(),
+        explain: createExplanationService({ model: 'fixture', complete }),
+      }),
+    );
+    const writer = session(apiWithExplanation, opsToken);
+    const outsider = session(apiWithExplanation, otherTeamToken);
+    const submit = async (member: ReturnType<typeof session>) => {
+      const { body } = await member
+        .post('/api/inspections')
+        .send({ type: 'xml', value: xml })
+        .expect(202);
+      await poll(member, body.id, 'done');
+      return String(body.id);
+    };
+    const first = await submit(writer);
+    const second = await submit(writer);
+    const { body } = await writer
+      .post(`/api/inspections/${first}/explain`)
+      .expect(200);
+    expect(body).toMatchObject({
+      cached: false,
+      explanation: { model: 'fixture', output: { confidence: 'high' } },
+    });
+    await writer
+      .post(`/api/inspections/${second}/explain`)
+      .expect(200)
+      .expect(({ body: cached }) => {
+        expect(cached.cached).toBe(true);
+      });
+    await viewer
+      .get(`/api/inspections/${second}`)
+      .expect(200)
+      .expect(({ body: detail }) => {
+        expect(detail.explanation?.output.summary).toBe(
+          'The impression is missing.',
+        );
+      });
+    await viewer.post(`/api/inspections/${first}/explain`).expect(403);
+    await outsider.post(`/api/inspections/${first}/explain`).expect(404);
+    expect(complete).toHaveBeenCalledOnce();
+
+    const foreign = await submit(outsider);
+    await outsider.post(`/api/inspections/${foreign}/explain`).expect(200);
+    expect(complete).toHaveBeenCalledTimes(2);
+  });
+
+  it('saves rule guidance under its own model when Gemini is unavailable', async () => {
+    const complete = vi
+      .fn()
+      .mockRejectedValue(new Error('Provider quota exceeded'));
+    const unavailable = createExplanationService({
+      model: 'gemini/fixture',
+      complete,
+    });
+    const explain = withExplanationFallback(
+      unavailable,
+      createExplanationService(rulesExplanationClient),
+    );
+    const member = session(
+      request(
+        createApp({
+          db: connection.db,
+          verifyAccessToken,
+          service: createInspectionService(),
+          explain,
+          explanationModel: 'gemini/fixture',
+        }),
+      ),
+      opsToken,
+    );
+    const accepted = await member
+      .post('/api/inspections')
+      .send({ type: 'xml', value: xml })
+      .expect(202);
+    const id = String(accepted.body.id);
+    await member
+      .get('/api/inspections/access')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.explanationModel).toBe('gemini/fixture');
+      });
+    await poll(member, id, 'done');
+    await member
+      .post(`/api/inspections/${id}/explain`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.explanation).toMatchObject({
+          model: 'built-in-rules',
+          costUsd: 0,
+          output: { fixes: [{ finding_rule_id: 'IMP-MISSING' }] },
+        });
+      });
+    await member
+      .get(`/api/inspections/${id}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.explanation.model).toBe('built-in-rules');
+      });
+    expect(complete).toHaveBeenCalledOnce();
   });
 });

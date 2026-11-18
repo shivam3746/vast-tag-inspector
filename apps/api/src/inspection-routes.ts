@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { authenticate, requireRole } from './auth.ts';
 import type { VerifyAccessToken } from './auth.ts';
 import type { Database } from './db.ts';
+import { promptVersion } from './explainer.ts';
+import { explanationErrors } from './explanation-service.ts';
+import type { ExplainInspection } from './explanation-service.ts';
 import { createInspectionRepository } from './inspection-repository.ts';
 import type { InspectionService } from './inspection-service.ts';
 
@@ -57,12 +60,16 @@ export interface InspectionApi {
   db: Database;
   verifyAccessToken: VerifyAccessToken;
   service: InspectionService;
+  explain?: ExplainInspection;
+  explanationModel?: string;
 }
 
 export function inspectionRoutes({
   db,
   verifyAccessToken,
   service,
+  explain,
+  explanationModel,
 }: InspectionApi) {
   const router = Router();
   const limit = (count: number) =>
@@ -134,8 +141,53 @@ export function inspectionRoutes({
     res.json({ items: await repository.list(limit, offset), limit, offset });
   });
   router.get('/access', (_req, res) => {
-    res.json({ role: res.locals.user.role });
+    res.json({
+      role: res.locals.user.role,
+      explanationsAvailable: Boolean(explain),
+      explanationModel: explanationModel ?? null,
+      explanationPromptVersion: explain ? promptVersion : null,
+    });
   });
+  router.post(
+    '/:id/explain',
+    requireRole('ad_ops', 'admin'),
+    limit(5),
+    async (req, res) => {
+      const id = idSchema.safeParse(req.params.id);
+      if (!id.success) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: explanationErrors.NOT_FOUND.message,
+          },
+        });
+        return;
+      }
+      if (!explain) {
+        res.status(503).json({
+          error: {
+            code: 'EXPLAIN_DISABLED',
+            message: 'Explanations are unavailable.',
+          },
+        });
+        return;
+      }
+      const { teamId } = res.locals.user;
+      const result = await explain(
+        createInspectionRepository(db, teamId),
+        teamId,
+        id.data,
+      );
+      if ('code' in result && result.code) {
+        const error = explanationErrors[result.code];
+        res
+          .status(error.status)
+          .json({ error: { code: result.code, message: error.message } });
+        return;
+      }
+      res.json(result);
+    },
+  );
   router.get('/:id', async (req, res) => {
     const id = idSchema.safeParse(req.params.id);
     const repository = createInspectionRepository(db, res.locals.user.teamId);

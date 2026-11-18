@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.3">
+<Ad>
+  <InLine>
+    <AdSystem>Fixture</AdSystem>
+    <AdTitle>Fixture ad</AdTitle>
+    <Impression>https://metrics.example/impression</Impression>
+    <Creatives><Creative><Linear skipoffset="25%">
+      <Duration>00:00:30</Duration>
+      <TrackingEvents>
+        <Tracking event="start">https://metrics.example/start</Tracking>
+        <Tracking event="firstQuartile">https://metrics.example/firstQuartile</Tracking>
+        <Tracking event="midpoint">https://metrics.example/midpoint</Tracking>
+        <Tracking event="thirdQuartile">https://metrics.example/thirdQuartile</Tracking>
+        <Tracking event="complete">https://metrics.example/complete</Tracking>
+      </TrackingEvents>
+      <MediaFiles><MediaFile type="video/mp4" codec="vp9">https://media.example/video</MediaFile></MediaFiles>
+    </Linear></Creative></Creatives>
+  </InLine>
+</Ad>
+</VAST>

@@ -38,6 +38,22 @@ export interface Finding {
 export interface RunDetails extends Run {
   hops: Hop[];
   findings: Finding[];
+  explanation?: StoredExplanation | null;
+}
+
+export interface StoredExplanation {
+  model: string;
+  promptVersion: string;
+  output: {
+    summary: string;
+    probable_root_cause: string;
+    confidence: 'low' | 'medium' | 'high';
+    fixes: {
+      finding_rule_id: string;
+      action: string;
+      owner: 'publisher' | 'ssp' | 'demand_partner' | 'unknown';
+    }[];
+  };
 }
 
 interface BrowserConfig {
@@ -76,7 +92,12 @@ export const getConfig = (signal: AbortSignal) =>
 export function inspectionApi(token: string) {
   return {
     access: (signal: AbortSignal) =>
-      request<{ role: Role }>(`${inspections}/access`, { signal }, token),
+      request<{
+        role: Role;
+        explanationsAvailable: boolean;
+        explanationModel: string | null;
+        explanationPromptVersion: string | null;
+      }>(`${inspections}/access`, { signal }, token),
     history: (offset: number, signal: AbortSignal) =>
       request<{ items: Run[] }>(
         `${inspections}?limit=${pageSize + 1}&offset=${offset}`,
@@ -93,6 +114,12 @@ export function inspectionApi(token: string) {
       request<{ id: string }>(
         inspections,
         { method: 'POST', body: JSON.stringify(source), signal },
+        token,
+      ),
+    explain: (id: string, signal: AbortSignal) =>
+      request<{ explanation: StoredExplanation }>(
+        `${inspections}/${encodeURIComponent(id)}/explain`,
+        { method: 'POST', signal },
         token,
       ),
   };

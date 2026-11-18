@@ -1,7 +1,12 @@
 import type { Chain, Finding, InspectionSource } from '@vast-tag/vast-core';
-import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, lt } from 'drizzle-orm';
 import type { Database } from './db.ts';
-import { findings, hops, inspections } from './schema.ts';
+import { explanations, findings, hops, inspections } from './schema.ts';
+
+export type ExplanationRecord = Omit<
+  typeof explanations.$inferSelect,
+  'inspectionId'
+>;
 
 export async function recoverExpiredInspections(db: Database, cutoff: Date) {
   await db
@@ -139,7 +144,46 @@ export function createInspectionRepository(db: Database, teamId: string) {
         with: {
           hops: { orderBy: asc(hops.index) },
           findings: { orderBy: asc(findings.index) },
+          explanation: { columns: { inspectionId: false, cacheKey: false } },
         },
+      });
+    },
+    async getExplanationEvidence(id: string) {
+      return db.query.inspections.findFirst({
+        where: byId(id),
+        columns: { status: true },
+        with: { findings: { columns: { ruleId: true, severity: true } } },
+      });
+    },
+    async getCachedExplanation(
+      cacheKey: string,
+    ): Promise<ExplanationRecord | undefined> {
+      const { inspectionId, ...columns } = getTableColumns(explanations);
+      const [row] = await db
+        .select(columns)
+        .from(explanations)
+        .innerJoin(inspections, eq(inspectionId, inspections.id))
+        .where(and(scope, eq(explanations.cacheKey, cacheKey)))
+        .orderBy(desc(explanations.createdAt))
+        .limit(1);
+      return row;
+    },
+    async saveExplanation(id: string, record: ExplanationRecord) {
+      return db.transaction(async (tx) => {
+        const [inspection] = await tx
+          .select({ id: inspections.id })
+          .from(inspections)
+          .where(byId(id))
+          .for('key share');
+        if (!inspection) return false;
+        await tx
+          .insert(explanations)
+          .values({ inspectionId: id, ...record })
+          .onConflictDoUpdate({
+            target: explanations.inspectionId,
+            set: record,
+          });
+        return true;
       });
     },
   };

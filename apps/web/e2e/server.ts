@@ -9,7 +9,12 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { createApp } from '../../api/src/app.ts';
 import { createTokenVerifier } from '../../api/src/auth.ts';
 import { connectDatabase } from '../../api/src/db.ts';
+import {
+  createExplanationService,
+  withExplanationFallback,
+} from '../../api/src/explanation-service.ts';
 import { createInspectionService } from '../../api/src/inspection-service.ts';
+import { rulesExplanationClient } from '../../api/src/rules-explainer.ts';
 import { profiles, teams } from '../../api/src/schema.ts';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -77,6 +82,16 @@ const service = createInspectionService({
   },
 });
 const app = express();
+const explanationModel = 'gemini/fixture';
+const explain = withExplanationFallback(
+  createExplanationService({
+    model: explanationModel,
+    async complete() {
+      throw new Error('Fixture provider quota exceeded.');
+    },
+  }),
+  createExplanationService(rulesExplanationClient),
+);
 app.post('/auth/v1/token', express.json(), async (request, response) => {
   if (
     request.body.email !== 'fixture@example.com' ||
@@ -107,6 +122,8 @@ app.use(
     {
       db,
       service,
+      explain,
+      explanationModel,
       verifyAccessToken: createTokenVerifier(
         issuer,
         createLocalJWKSet({ keys: [jwk] }),

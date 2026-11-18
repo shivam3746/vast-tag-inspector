@@ -1,0 +1,4 @@
+{
+  "ruleIds": ["CHAIN-DEPTH"],
+  "maxWrapperDepth": 0
+}

@@ -23,6 +23,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit && npm run typecheck -w @vast-tag/web",
     "test": "vitest run",
+    "eval": "node --env-file-if-exists=.env eval/run.ts",
     "test:e2e": "playwright test --config apps/web/playwright.config.ts"
   },
   "devDependencies": {

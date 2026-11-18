@@ -1,0 +1,4 @@
+{
+  "ruleIds": ["CHAIN-LATENCY"],
+  "latencyMs": 3501
+}

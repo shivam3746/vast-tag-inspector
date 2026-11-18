@@ -1,14 +1,17 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   check,
+  doublePrecision,
   index,
   integer,
+  jsonb,
   pgSchema,
   text,
   timestamp,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
+import type { Explanation } from './explainer.ts';
 
 export const schema = pgSchema('vast_inspector');
 export const status = schema.enum('inspection_status', [
@@ -132,9 +135,37 @@ export const findings = schema.table(
   (table) => [unique().on(table.inspectionId, table.index)],
 );
 
-export const inspectionRelations = relations(inspections, ({ many }) => ({
+export const explanations = schema.table(
+  'explanations',
+  {
+    inspectionId: uuid('inspection_id')
+      .primaryKey()
+      .references(() => inspections.id, { onDelete: 'cascade' }),
+    cacheKey: text('cache_key').notNull(),
+    model: text().notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    output: jsonb().$type<Explanation>().notNull(),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    costUsd: doublePrecision('cost_usd'),
+    latencyMs: integer('latency_ms').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('explanations_cache_key').on(table.cacheKey)],
+);
+
+export const inspectionRelations = relations(inspections, ({ many, one }) => ({
   hops: many(hops),
   findings: many(findings),
+  explanation: one(explanations),
+}));
+export const explanationRelations = relations(explanations, ({ one }) => ({
+  inspection: one(inspections, {
+    fields: [explanations.inspectionId],
+    references: [inspections.id],
+  }),
 }));
 export const hopRelations = relations(hops, ({ one }) => ({
   inspection: one(inspections, {
