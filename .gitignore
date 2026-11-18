@@ -9,8 +9,4 @@ test-results/
 .env.*
 !.env.example
 
-/README.md
 /CTV VAST Tag Inspector Research Rationale, System Design and Build Plan.md
-/docs/adr/001-ssrf-protections.md
-/docs/adr/003-rules-first.md
-/eval/report.md
